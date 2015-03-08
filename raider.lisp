@@ -19,6 +19,13 @@
    (entities :accessor entities :initarg :entities :initform nil)
    (behaviors :accessor behaviors :initarg :behaviors :initform nil)))
 
+(defclass ability ()
+  ((name :accessor name :initarg :name)
+   (cost :accessor cost :initarg :cost)
+   (range :accessor range :initarg :range)
+   (effect :accessor effect :initarg :effect)
+   (cooldown :accessor cooldown :initform 0)))
+
 (defun make-arena (size)
   (let ((array (make-array size)))
     (loop for x from 0 to (- (first size) 1)
@@ -55,34 +62,57 @@
                               (t (format t "O")))))
               (format t "~%")))))
 
+(defun make-ability ()
+  (make-instance 'ability :name "attack" :range 1 :effect '((hp-damage . 1))))
+
 (defun make-test-arena ()
   (let ((arena (make-arena '(10 10))))
     (add-entity arena (make-instance 'entity
                                      :name "hero1"
                                      :team 'hero
                                      :position (list 0 0)
+                                     :abilities (list (make-ability))
                                      :display-char "H"))
     (add-entity arena (make-instance 'entity
                                      :name "hero2"
                                      :team 'hero
                                      :position (list 1 0)
+                                     :abilities (list (make-ability))
                                      :display-char "H"))
     (add-entity arena (make-instance 'entity
                                      :name "hero3"
                                      :team 'hero
                                      :position (list 0 1)
+                                     :abilities (list (make-ability))
                                      :display-char "H"))
     (add-entity arena (make-instance 'entity
                                      :name "hero4"
                                      :team 'hero
                                      :position (list 1 1)
+                                     :abilities (list (make-ability))
                                      :display-char "H"))
-    (add-entity arena
-                (make-instance 'entity :name "monster1" :team 'monster :position (list 9 9)))
-    (add-entity arena
-                (make-instance 'entity :name "monster2" :team 'monster :position (list 8 9)))
-    (add-entity arena
-                (make-instance 'entity :name "monster3" :team 'monster :position (list 9 8)))
-    (add-entity arena
-                (make-instance 'entity :name "monster4" :team 'monster :position (list 8 8)))
+    (add-entity arena (make-instance 'entity
+                                     :name "monster1"
+                                     :team 'monster
+                                     :abilities (list (make-ability))
+                                     :display-char "M"
+                                     :position (list 9 9)))
+    (add-entity arena (make-instance 'entity
+                                     :name "monster2"
+                                     :team 'monster
+                                     :abilities (list (make-ability))
+                                     :display-char "M"
+                                     :position (list 8 9)))
+    (add-entity arena (make-instance 'entity
+                                     :name "monster3"
+                                     :team 'monster
+                                     :abilities (list (make-ability))
+                                     :display-char "M"
+                                     :position (list 9 8)))
+    (add-entity arena (make-instance 'entity
+                                     :name "monster4"
+                                     :team 'monster
+                                     :abilities (list (make-ability))
+                                     :display-char "M"
+                                     :position (list 8 8)))
     arena))
