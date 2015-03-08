@@ -141,6 +141,19 @@
   (loop for ent in (entities arena)
        if (equal (name ent) name) return ent))
 
+(defun resolve-action (arena team action)
+  (format t "resolving action ~a~%" action)
+  (let ((entity (get-entity-by-name arena (car action)))
+        (a (cdr action)))
+    (cond ((eq (first a) 'move)
+           (case (second a) ; this eventually needs bounds checking
+             (up (incf (pos-y (pos entity))))
+             (down (decf (pos-y (pos entity))))
+             (left (decf (pos-x (pos entity))))
+             (right (incf (pos-x (pos entity))))))
+          (t (format t "Team ~a Entity ~a: unknown action ~a~%"
+                     team (name entity) a)))))
+
 (defun resolve-turn (arena)
   (dolist (team (turn-order arena) arena)
     (format t "resolving turn for ~a~%" team)
@@ -148,14 +161,4 @@
       (if (not behavior-cons)
           (format t "Team ~a does not have a behavior. Skipping...~%" team)
           (dolist (action (funcall (cdr behavior-cons) arena team))
-            (format t "resolving action ~a~%" action)
-            (let ((entity (get-entity-by-name arena (car action)))
-                  (a (cdr action)))
-              (cond ((eq (first a) 'move)
-                     (case (second a) ; this eventually needs bounds checking
-                       (up (incf (pos-y (pos entity))))
-                       (down (decf (pos-y (pos entity))))
-                       (left (decf (pos-x (pos entity))))
-                       (right (incf (pos-x (pos entity))))))
-                    (t (format t "Team ~a Entity ~a: unknown action ~a~%"
-                               team (name entity) a)))))))))
+            (resolve-action arena team action))))))
