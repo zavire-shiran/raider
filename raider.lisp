@@ -3,6 +3,14 @@
 
 (in-package #:raider)
 
+(defmacro array-iterate (array xname yname &body body)
+  (let ((arr (gensym)) (xsize (gensym)) (ysize (gensym)))
+    `(let ((,arr ,array))
+       (destructuring-bind (,xsize ,ysize) (array-dimensions ,arr)
+         (loop for ,xname from 0 to (1- ,xsize)
+               do (loop for ,yname from 0 to (1- ,ysize)
+                        do (progn ,@body)))))))
+
 (defstruct (pos (:conc-name pos-)) x y)
 
 (defclass entity ()
@@ -32,9 +40,7 @@
 
 (defun make-arena (size)
   (let ((array (make-array size)))
-    (loop for x from 0 to (- (first size) 1)
-         do (loop for y from 0 to (- (second size) 1)
-                 do (setf (aref array x y) (make-instance 'terrain))))
+    (array-iterate array x y (setf (aref array x y) (make-instance 'terrain)))
     (make-instance 'arena :terrain array)))
 
 (defun add-behavior (arena team behavior)
@@ -47,11 +53,12 @@
   (setf (entities arena) (cons entity (entities arena))))
 
 (defun find-entity (entities x y)
-  (let ((entity-here nil))
-    (dolist (entity entities entity-here)
-      (let ((p (pos entity)))
-        (if (and (= (pos-x p) x) (= (pos-y p) y))
-            (setf entity-here entity))))))
+  (let ((entity-here nil)) 
+    (loop for entity in entities do
+         (let ((p (pos entity)))
+           (if (and (= (pos-x p) x) (= (pos-y p) y))
+               (setf entity-here entity))))
+    entity-here))
 
 (defun display-arena (arena)
   (with-slots (terrain entities current-turn) arena
@@ -66,9 +73,9 @@
                               ((passable (aref terrain x y)) (format t "."))
                               (t (format t "O")))))
               (format t "~%")))
-    (dolist (entity (entities arena))
-      (format t "(~a ~a) ~a ~a ~a~%" (pos-x (pos entity)) (pos-y (pos entity))
-              (name entity) (team entity) (stats entity)))))
+    (loop for entity in entities do
+         (format t "(~a ~a) ~a ~a ~a~%" (pos-x (pos entity)) (pos-y (pos entity))
+                 (name entity) (team entity) (stats entity)))))
 
 (defun make-ability ()
   (make-instance 'ability :name "attack" :range 'touch :effect '((hp-damage . 1))))
@@ -188,8 +195,9 @@
 (defun move-down-behavior (arena team)
   (let ((teammates (get-team-entities arena team))
         (result-list nil))
-    (dolist (ent teammates result-list)
-      (setf result-list (acons (name ent) (list 'move 'down) result-list)))))
+    (loop for ent in teammates do
+       (setf result-list (acons (name ent) (list 'move 'down) result-list)))
+    result-list))
 
 (defun hero-attack-test-behavior (arena team)
   (list (list "hero1" 'use-ability "attack" 'up)
@@ -204,7 +212,7 @@
 
 (defun get-entity-by-name (arena name)
   (loop for ent in (entities arena)
-       if (equal (name ent) name) return ent))
+     if (equal (name ent) name) return ent))
 
 (defun resolve-action (arena team action)
   (format t "resolving action ~a~%" action)
@@ -220,13 +228,13 @@
                      team (name entity) a)))))
 
 (defun resolve-turn (arena)
-  (dolist (team (turn-order arena) arena)
-    (format t "resolving turn for ~a~%" team)
-    (let ((behavior-cons (assoc team (behaviors arena))))
-      (if (not behavior-cons)
-          (format t "Team ~a does not have a behavior. Skipping...~%" team)
-          (dolist (action (funcall (cdr behavior-cons) arena team))
-            (resolve-action arena team action)))))
+  (loop for team in (turn-order arena) do
+       (format t "resolving turn for ~a~%" team)
+       (let ((behavior-cons (assoc team (behaviors arena))))
+         (if (not behavior-cons)
+             (format t "Team ~a does not have a behavior. Skipping...~%" team)
+             (loop for action in (funcall (cdr behavior-cons) arena team) do
+                  (resolve-action arena team action)))))
   (incf (current-turn arena)))
 
 (defun generate-neighbors (pos)
